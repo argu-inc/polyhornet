@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Polyhornet</title>
+
+<!-- PWA / "Добавить на экран Домой" без интерфейса Safari -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Polyhornet">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #0a0a0a;
+    --surface-variant: #1c1c1c;
+    --accent: #40ff00;
+    --on-accent: #000000;
+    --text: #ffffff;
+    --text-dim: #9a9a9a;
+    --error: #ff5252;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  #app {
+    min-height: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 16px 16px 32px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 4px 0 20px;
+    letter-spacing: 0.2px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 16px 0 6px;
+  }
+
+  input[type="text"], input[type="date"] {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid #2a2a2a;
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 16px;
+    outline: none;
+  }
+
+  input[type="text"]:focus, input[type="date"]:focus {
+    border-color: var(--accent);
+  }
+
+  button {
+    font: inherit;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: var(--radius);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+  }
+
+  .btn-text {
+    background: none;
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 8px 10px;
+  }
+
+  .error {
+    margin-top: 14px;
+    color: var(--error);
+    font-size: 14px;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(64,255,0,0.25);
+    border-top-color: var(--accent);
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Экран расписания */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .day-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin: 4px 0 18px;
+  }
+
+  .day-nav .date-label {
+    min-width: 150px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .group-label {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 14px 0 6px;
+  }
+
+  .timeline-track {
+    position: relative;
+    height: 46px;
+    border-radius: 8px;
+    background: var(--surface-variant);
+    overflow: hidden;
+  }
+
+  .lesson-block {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    background: var(--accent);
+    border-radius: 6px;
+    padding: 4px 6px;
+    overflow: hidden;
+  }
+
+  .lesson-block.remote {
+    background: rgba(64,255,0,0.45);
+  }
+
+  .lesson-block span {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #000;
+    line-height: 1.15;
+  }
+
+  .time-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 28px 0 12px;
+  }
+
+  .opportunity-card {
+    background: var(--surface);
+    border: 1px solid #232323;
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .opportunity-card .type {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .opportunity-card .time {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .opportunity-card .building {
+    font-size: 14px;
+  }
+
+  .empty-state {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ======================================================================
+   RUZ API + парсинг расписания (порт RuzRepository.kt)
+   ====================================================================== */
+
+const RUZ_BASE = 'https://ruz.spbstu.ru/api/v1/ruz';
+
+async function getJson(url) {
+  let response;
+  try {
+    response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  } catch (e) {
+    throw new Error('Не удалось связаться с РУЗ (нет сети или запрос заблокирован CORS)');
+  }
+  if (!response.ok) throw new Error(`РУЗ вернул HTTP ${response.status}`);
+  const json = await response.json();
+  if (json && json.error) {
+    throw new Error(json.text || 'РУЗ сообщил об ошибке');
+  }
+  return json;
+}
+
+// Ищет объект вида {"name": "...", ...} под ключом "building" на любой
+// глубине внутри пары — так же, как findBuildingRecursively в Kotlin.
+function findBuildingRecursively(node) {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = findBuildingRecursively(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (node && typeof node === 'object') {
+    if (node.building && typeof node.building === 'object' && !Array.isArray(node.building)) {
+      return node.building;
+    }
+    for (const key of Object.keys(node)) {
+      const found = findBuildingRecursively(node[key]);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function parseTime(s) {
+  if (!s || typeof s !== 'string') return null;
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+function parseAuditoryInfo(item) {
+  const building = findBuildingRecursively(item);
+  const buildingName = building && building.name ? String(building.name).trim() || null : null;
+  const remoteText = [item.additional_info, buildingName, item.lms_url, item.webinar_url]
+    .filter(Boolean).join(' ').toLowerCase();
+  const remote = remoteText.includes('дистан') || remoteText.includes('dl');
+  return { remote, buildingName };
+}
+
+function parseSchedule(root) {
+  const days = root && root.days;
+  if (!Array.isArray(days)) throw new Error('В ответе РУЗ нет дней расписания');
+
+  const result = [];
+  for (const day of days) {
+    const date = day.date;
+    if (!date) continue;
+    const lessons = Array.isArray(day.lessons) ? day.lessons : [];
+
+    for (const item of lessons) {
+      const start = parseTime(item.time_start);
+      const end = parseTime(item.time_end);
+      if (start == null || end == null) continue;
+
+      const { remote, buildingName } = parseAuditoryInfo(item);
+      result.push({
+        date,
+        startMin: start,
+        endMin: end,
+        subject: item.subject || 'Без названия',
+        building: buildingName,
+        remote
+      });
+    }
+  }
+
+  result.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.startMin - b.startMin));
+  return result;
+}
+
+async function loadGroupSchedule(groupNumber) {
+  const q = encodeURIComponent(groupNumber.trim());
+  const search = await getJson(`${RUZ_BASE}/search/groups?q=${q}`);
+  const groups = search.groups;
+  if (!Array.isArray(groups) || groups.length === 0) {
+    throw new Error(`Группа «${groupNumber}» не найдена`);
+  }
+
+  let selected = groups.find(
+    (g) => (g.name || '').trim().toLowerCase() === groupNumber.trim().toLowerCase()
+  );
+  if (!selected && groups.length === 1) selected = groups[0];
+  if (!selected) throw new Error(`Не удалось однозначно найти группу «${groupNumber}»`);
+
+  const id = selected.id;
+  if (!id || id <= 0) throw new Error(`У группы «${groupNumber}» отсутствует корректный ID`);
+
+  const schedule = await getJson(`${RUZ_BASE}/scheduler/${id}`);
+  return parseSchedule(schedule);
+}
+
+/* ======================================================================
+   Analyzer (порт Analyzer.kt)
+   ====================================================================== */
+
+function sameBuilding(a, b) {
+  if (!a || !b) return false;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function getBreaks(schedule) {
+  const breaks = [];
+  for (let i = 0; i < schedule.length - 1; i++) {
+    const current = schedule[i];
+    const next = schedule[i + 1];
+    if (current.endMin < next.startMin) {
+      breaks.push({ startMin: current.endMin, endMin: next.startMin, from: current, to: next });
+    }
+  }
+  return breaks;
+}
+
+function analyze(scheduleA, scheduleB, dateStr) {
+  const la = scheduleA.filter((l) => l.date === dateStr).sort((x, y) => x.startMin - y.startMin);
+  const lb = scheduleB.filter((l) => l.date === dateStr).sort((x, y) => x.startMin - y.startMin);
+  const result = [];
+
+  // 1. Доехать вместе: первые пары начинаются одновременно (корпус не важен).
+  if (la.length && lb.length && la[0].startMin === lb[0].startMin) {
+    result.push({
+      type: 'ARRIVE_TOGETHER', startMin: la[0].startMin, endMin: null,
+      building1: la[0].building, building2: lb[0].building
+    });
+  }
+
+  const breaksA = getBreaks(la);
+  const breaksB = getBreaks(lb);
+
+  // 2. Пары в одном корпусе: перемены пересекаются по времени, и после
+  //    перемены обе группы идут в один и тот же корпус.
+  for (const a of breaksA) {
+    for (const b of breaksB) {
+      const start = Math.max(a.startMin, b.startMin);
+      const end = Math.min(a.endMin, b.endMin);
+      if (start < end && sameBuilding(a.to.building, b.to.building)) {
+        result.push({
+          type: 'MEET_IN_BUILDING', startMin: start, endMin: end,
+          building1: a.to.building, building2: b.to.building
+        });
+      }
+    }
+  }
+
+  // 3. Пересечься между корпусами: встречное движение по одному маршруту —
+  //    студент 1 идёт X → Y, студент 2 в то же время идёт Y → X.
+  for (const a of breaksA) {
+    for (const b of breaksB) {
+      const start = Math.max(a.startMin, b.startMin);
+      const end = Math.min(a.endMin, b.endMin);
+      if (
+        start < end &&
+        sameBuilding(a.from.building, b.to.building) &&
+        sameBuilding(a.to.building, b.from.building)
+      ) {
+        result.push({
+          type: 'CROSS_BETWEEN_BUILDINGS', startMin: start, endMin: end,
+          building1: a.from.building, building2: a.to.building
+        });
+      }
+    }
+  }
+
+  // 4. Уехать вместе: последние пары заканчиваются одновременно.
+  if (la.length && lb.length && la[la.length - 1].endMin === lb[lb.length - 1].endMin) {
+    const x = la[la.length - 1], y = lb[lb.length - 1];
+    result.push({
+      type: 'LEAVE_TOGETHER', startMin: x.endMin, endMin: null,
+      building1: x.building, building2: y.building
+    });
+  }
+
+  const seen = new Set();
+  const dedup = [];
+  for (const o of result) {
+    const key = [o.type, o.startMin, o.endMin, o.building1, o.building2].join('|');
+    if (!seen.has(key)) { seen.add(key); dedup.push(o); }
+  }
+  dedup.sort((a, b) => a.startMin - b.startMin);
+  return dedup;
+}
+
+const TYPE_TITLES = {
+  ARRIVE_TOGETHER: 'Доехать вместе',
+  MEET_IN_BUILDING: 'Пары в одном корпусе',
+  CROSS_BETWEEN_BUILDINGS: 'Пересечься между корпусами',
+  LEAVE_TOGETHER: 'Уехать вместе'
+};
+
+function formatBuildings(o) {
+  if (o.type === 'CROSS_BETWEEN_BUILDINGS') {
+    return `${o.building1 || '?'} → ${o.building2 || '?'}`;
+  }
+  const b1 = o.building1 && o.building1.trim() ? o.building1.trim() : null;
+  const b2 = o.building2 && o.building2.trim() ? o.building2.trim() : null;
+  if (b1 && b2 && b1.toLowerCase() !== b2.toLowerCase()) return `${b1} / ${b2}`;
+  if (b1) return b1;
+  if (b2) return b2;
+  return 'Корпус не указан';
+}
+
+function fmtTime(min) {
+  const h = Math.floor(min / 60).toString().padStart(2, '0');
+  const m = (min % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+/* ======================================================================
+   Состояние и навигация
+   ====================================================================== */
+
+function todayISO() {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+
+const state = {
+  screen: 'input', // 'input' | 'schedule'
+  group1: '',
+  group2: '',
+  date: todayISO(),
+  loading: false,
+  error: null,
+  schedule1: null,
+  schedule2: null
+};
+
+function shiftDate(iso, days) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDateLabel(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' });
+}
+
+async function handleSubmit() {
+  if (!state.group1.trim() || !state.group2.trim()) {
+    state.error = 'Укажи обе группы';
+    render();
+    return;
+  }
+  state.loading = true;
+  state.error = null;
+  render();
+
+  try {
+    const [s1, s2] = await Promise.all([
+      loadGroupSchedule(state.group1),
+      loadGroupSchedule(state.group2)
+    ]);
+    state.schedule1 = s1;
+    state.schedule2 = s2;
+    state.loading = false;
+    state.screen = 'schedule';
+    history.pushState({ screen: 'schedule' }, '', '#schedule');
+    render();
+  } catch (e) {
+    state.loading = false;
+    state.error = e.message || 'Не удалось загрузить расписание';
+    render();
+  }
+}
+
+function goToInput() {
+  state.screen = 'input';
+  state.schedule1 = null;
+  state.schedule2 = null;
+  state.error = null;
+  render();
+}
+
+window.addEventListener('popstate', () => {
+  if (state.screen === 'schedule') goToInput();
+});
+
+/* ======================================================================
+   Рендер
+   ====================================================================== */
+
+const app = document.getElementById('app');
+
+function render() {
+  app.innerHTML = state.screen === 'input' ? renderInputScreen() : renderScheduleScreen();
+  bindEvents();
+  window.scrollTo(0, 0);
+}
+
+function renderInputScreen() {
+  return `
+    <h1>Polyhornet</h1>
+
+    <label for="group1">Группа 1</label>
+    <input id="group1" type="text" placeholder="5030102/10001" value="${escapeHtml(state.group1)}" autocomplete="off">
+
+    <label for="group2">Группа 2</label>
+    <input id="group2" type="text" placeholder="5030102/10002" value="${escapeHtml(state.group2)}" autocomplete="off">
+
+    <label for="date">Дата</label>
+    <input id="date" type="date" value="${state.date}">
+
+    <button class="btn-primary" id="submit" ${state.loading ? 'disabled' : ''}>
+      ${state.loading ? '<span class="spinner"></span>Загрузка…' : 'Готово'}
+    </button>
+
+    ${state.error ? `<div class="error">${escapeHtml(state.error)}</div>` : ''}
+  `;
+}
+
+function renderScheduleScreen() {
+  const date = state.date;
+  const opportunities = analyze(state.schedule1, state.schedule2, date);
+
+  const la = state.schedule1.filter((l) => l.date === date).sort((a, b) => a.startMin - b.startMin);
+  const lb = state.schedule2.filter((l) => l.date === date).sort((a, b) => a.startMin - b.startMin);
+
+  const allLessons = la.concat(lb);
+  let rangeStart = 8 * 60, rangeEnd = 20 * 60;
+  if (allLessons.length) {
+    rangeStart = Math.min(...allLessons.map((l) => l.startMin)) - 15;
+    rangeEnd = Math.max(...allLessons.map((l) => l.endMin)) + 15;
+  }
+  const span = Math.max(rangeEnd - rangeStart, 1);
+
+  return `
+    <div class="top-bar">
+      <button class="btn-text" id="back">‹ Назад</button>
+    </div>
+
+    <div class="day-nav">
+      <button class="btn-text" id="prev-day">‹</button>
+      <span class="date-label">${formatDateLabel(date)}</span>
+      <button class="btn-text" id="next-day">›</button>
+    </div>
+
+    <div class="group-label">${escapeHtml(state.group1)}</div>
+    ${renderTimeline(la, rangeStart, span)}
+
+    <div class="group-label">${escapeHtml(state.group2)}</div>
+    ${renderTimeline(lb, rangeStart, span)}
+
+    <div class="time-scale">
+      <span>${fmtTime(rangeStart)}</span>
+      <span>${fmtTime(rangeEnd)}</span>
+    </div>
+
+    <div class="section-title">Возможности</div>
+    ${
+      opportunities.length
+        ? opportunities.map(renderOpportunityCard).join('')
+        : '<div class="empty-state">На этот день ничего не найдено</div>'
+    }
+  `;
+}
+
+function renderTimeline(lessons, rangeStart, span) {
+  const blocks = lessons.map((l) => {
+    const left = ((l.startMin - rangeStart) / span) * 100;
+    const width = ((l.endMin - l.startMin) / span) * 100;
+    const label = l.building && l.building.trim() ? l.building : 'Корпус не указан';
+    return `
+      <div class="lesson-block ${l.remote ? 'remote' : ''}" style="left:${left}%; width:${width}%;">
+        <span>${escapeHtml(label)}</span>
+      </div>
+    `;
+  }).join('');
+
+  return `<div class="timeline-track">${blocks}</div>`;
+}
+
+function renderOpportunityCard(o) {
+  const time = o.endMin != null
+    ? `${fmtTime(o.startMin)}–${fmtTime(o.endMin)}`
+    : fmtTime(o.startMin);
+
+  return `
+    <div class="opportunity-card">
+      <div class="type">${TYPE_TITLES[o.type]}</div>
+      <div class="time">${time}</div>
+      <div class="building">${escapeHtml(formatBuildings(o))}</div>
+    </div>
+  `;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function bindEvents() {
+  if (state.screen === 'input') {
+    const g1 = document.getElementById('group1');
+    const g2 = document.getElementById('group2');
+    const dt = document.getElementById('date');
+    g1.addEventListener('input', (e) => { state.group1 = e.target.value; });
+    g2.addEventListener('input', (e) => { state.group2 = e.target.value; });
+    dt.addEventListener('change', (e) => { state.date = e.target.value; });
+    document.getElementById('submit').addEventListener('click', handleSubmit);
+  } else {
+    document.getElementById('back').addEventListener('click', () => {
+      // Возврат в приложение делаем и через history.back(), и напрямую —
+      // так работает и системный жест "назад", и сама кнопка.
+      if (history.state && history.state.screen === 'schedule') {
+        history.back();
+      } else {
+        goToInput();
+      }
+    });
+    document.getElementById('prev-day').addEventListener('click', () => {
+      state.date = shiftDate(state.date, -1);
+      render();
+    });
+    document.getElementById('next-day').addEventListener('click', () => {
+      state.date = shiftDate(state.date, 1);
+      render();
+    });
+  }
+}
+
+render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
